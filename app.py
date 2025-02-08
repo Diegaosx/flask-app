@@ -104,5 +104,33 @@ def screenshot_instagram():
     except Exception as e:
         return {"error": str(e)}, 500
 
+
+@app.route('/send_message', methods=['POST'])
+def send_message():
+    data = request.json
+    
+    instance = data.get('instance')
+    number = data.get('number')
+    text = data.get('text')
+    apikey = data.get('apikey')
+    
+    if not all([instance, number, text, apikey]):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    url = f"https://zap.redegram.com/message/sendText/{instance}"
+    headers = {
+        'Content-Type': 'application/json',
+        'apikey': apikey
+    }
+    payload = {
+        'number': number,
+        'text': text
+    }
+    
+    response = requests.post(url, json=payload, headers=headers)
+    return jsonify(response.json()), response.status_code
+
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
