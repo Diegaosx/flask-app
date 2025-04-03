@@ -1,2 +1,3 @@
 flask
 playwright
+git+https://github.com/hexgrad/kokoro.git@main
