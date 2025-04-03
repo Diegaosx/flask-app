@@ -1,6 +1,8 @@
-from flask import Flask, request, send_file
-from playwright.sync_api import sync_playwright
-import os
+from flask import Flask, request, jsonify, send_file
+from playwright.sync_api import sync_playwrightimport os
+from kokoro import KPipeline
+import soundfile as sf
+import uuid
 
 app = Flask(__name__)
 
@@ -129,6 +131,49 @@ def send_message():
     
     response = requests.post(url, json=payload, headers=headers)
     return jsonify(response.json()), response.status_code
+
+
+# Rota TTS
+@app.route("/tts", methods=["POST"])
+def tts():
+    data = request.json
+
+    # Validação dos parâmetros
+    required = ["voice", "text", "speed"]
+    if not all(param in data for param in required):
+        return jsonify({"error": "Missing parameters"}), 400
+
+    try:
+        # Inicializa o pipeline do Kokoro
+        pipeline = KPipeline(lang_code='a')  # 'a' para autodetectar idioma
+
+        # Gera o áudio
+        generator = pipeline(
+            text=data["text"],
+            voice=data["voice"],
+            speed=data["speed"]  # Ajuste de velocidade (ex: 1.0 = normal)
+        )
+
+        # Salva o áudio em um arquivo temporário
+        audio_data = next(generator)[2]  # Pega o primeiro chunk de áudio
+        filename = f"{uuid.uuid4()}.wav"
+        sf.write(filename, audio_data, 24000)
+
+        # Retorna o arquivo como resposta
+        return send_file(
+            filename,
+            mimetype="audio/wav",
+            as_attachment=True,
+            download_name="output.wav"
+        )
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        # Remove o arquivo temporário
+        if 'filename' in locals():
+            os.remove(filename)
 
 
 
