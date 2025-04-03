@@ -1,4 +1,4 @@
 flask
 playwright
-kokoro>=0.9.2
+kokoro
 soundfile
